@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(mysql --version)",
+      "Bash(npm create *)"
+    ]
+  }
+}

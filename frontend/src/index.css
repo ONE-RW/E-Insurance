@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* Google Translate widget: keep only our own LanguageSwitcher UI visible. The widget normally
+   injects a top banner iframe (which also pushes `body` down via an inline top offset) and can
+   render its own gadget/dropdown chrome — hide all of it so the page looks untouched. */
+.goog-te-banner-frame {
+  display: none !important;
+}
+
+body {
+  top: 0px !important;
+}
+
+.goog-te-gadget {
+  display: none !important;
+}
+
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* The widget also injects an invisible full-page tooltip iframe (`iframe.skiptranslate`, e.g.
+   its hover-translate balloon) that can sit on top of the page and silently swallow clicks even
+   though it renders nothing visible. Since we never use the widget's own popup UI, it's safe to
+   make every such overlay click-through so real page controls stay clickable underneath it. */
+iframe.skiptranslate {
+  pointer-events: none !important;
+}
