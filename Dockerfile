@@ -29,6 +29,13 @@ RUN npm run build
 FROM node:20-alpine AS backend-deps
 WORKDIR /app/backend
 
+# `bcrypt` is a native addon (node-gyp) - Alpine's musl libc means prebuilt
+# binaries usually don't match, so npm has to compile it from source. Alpine's
+# base image doesn't ship the toolchain needed for that; without these,
+# `npm ci` either fails outright or silently produces a broken binding that
+# crashes the very first time bcrypt.compare/hash actually runs at runtime.
+RUN apk add --no-cache python3 make g++
+
 COPY backend/package.json backend/package-lock.json ./
 # sequelize-cli is a devDependency, but this app runs
 # `sequelize-cli db:migrate` at container boot (see CMD below), so it must
