@@ -10,13 +10,20 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 
-    <!-- Google Translate Website widget: powers LanguageSwitcher.jsx (English/Français/Kinyarwanda). -->
+    <!--
+      Google Translate Website widget: powers LanguageSwitcher.jsx (English/Français/Kinyarwanda).
+      This script's callback only signals "the Google Translate API finished loading" — it does
+      NOT construct the widget itself. The widget must be built against LanguageSwitcher's own
+      `#google_translate_element` container, which only exists in the DOM after login (it lives
+      inside the authenticated Sidebar). Constructing it here, unconditionally, would frequently
+      run before that container exists (e.g. while still on /login) and fail silently with no
+      retry — Google's TranslateElement constructor is a one-shot call. LanguageSwitcher.jsx
+      constructs it itself, once, when it mounts and its own container is guaranteed present.
+    -->
     <script>
+      window.__googleTranslateApiReady = false;
       function googleTranslateElementInit() {
-        new google.translate.TranslateElement(
-          { pageLanguage: "en", includedLanguages: "en,fr,rw", autoDisplay: false },
-          "google_translate_element"
-        );
+        window.__googleTranslateApiReady = true;
       }
     </script>
     <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>

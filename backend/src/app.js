@@ -15,6 +15,7 @@ const policiesRoutes = require('./routes/policiesRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const logsRoutes = require('./routes/logsRoutes');
 const reportsRoutes = require('./routes/reportsRoutes');
+const sessionsRoutes = require('./routes/sessionsRoutes');
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -42,6 +43,7 @@ app.use('/api/policies', policiesRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/sessions', sessionsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

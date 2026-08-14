@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Activity,
+  BarChart3,
   Building2,
   Car,
   FileText,
@@ -15,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const LINKS_BY_ROLE = {
   admin: [
@@ -24,6 +26,7 @@ const LINKS_BY_ROLE = {
     { to: "/admin/vehicles", label: "Vehicles", icon: Car },
     { to: "/admin/policies", label: "Policies", icon: FileText },
     { to: "/admin/logs", label: "Activity Logs", icon: History },
+    { to: "/admin/reports", label: "Reports", icon: BarChart3 },
     { to: "/activity", label: "My Activity", icon: Activity },
   ],
   insurer: [
@@ -67,7 +70,7 @@ function BrandHeader({ onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="rounded-md p-1.5 text-navy-200 hover:bg-navy-800 hover:text-white lg:hidden"
+          className="rounded-md p-1.5 text-navy-200 hover:bg-navy-800 hover:text-white"
         >
           <X className="h-5 w-5" />
         </button>
@@ -133,10 +136,10 @@ function UserCard({ user, onLogout }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ open: desktopOpen = true, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!user) return null;
 
@@ -153,7 +156,7 @@ export default function Sidebar() {
       <div className="sticky top-0 z-30 flex items-center gap-3 bg-navy-900 px-4 py-3 lg:hidden">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
           className="rounded-md p-2 text-navy-200 hover:bg-navy-800 hover:text-white"
         >
@@ -168,10 +171,10 @@ export default function Sidebar() {
       </div>
 
       {/* Backdrop for mobile drawer */}
-      {open && (
+      {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setOpen(false)}
+          onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />
       )}
@@ -179,17 +182,24 @@ export default function Sidebar() {
       {/* Mobile drawer */}
       <div
         className={`fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col bg-navy-900 transition-transform duration-200 lg:hidden ${
-          open ? "translate-x-0" : "-translate-x-full"
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <BrandHeader onClose={() => setOpen(false)} />
-        <NavLinks links={links} onNavigate={() => setOpen(false)} />
+        <BrandHeader onClose={() => setMobileOpen(false)} />
+        <LanguageSwitcher />
+        <NavLinks links={links} onNavigate={() => setMobileOpen(false)} />
         <UserCard user={user} onLogout={handleLogout} />
       </div>
 
-      {/* Desktop fixed sidebar */}
-      <div className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-navy-900 lg:flex">
-        <BrandHeader />
+      {/* Desktop sidebar — collapsible via the toggle in Layout.jsx (and its own close button
+          here), controlled by the `open`/`onClose` props rather than local state. */}
+      <div
+        className={`fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-navy-900 transition-transform duration-200 lg:flex ${
+          desktopOpen ? "lg:translate-x-0" : "lg:-translate-x-full"
+        }`}
+      >
+        <BrandHeader onClose={onClose} />
+        <LanguageSwitcher />
         <NavLinks links={links} />
         <UserCard user={user} onLogout={handleLogout} />
       </div>

@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
-const { User, InsuranceCompany } = require('../models');
+const { User, InsuranceCompany, Session } = require('../models');
 
 async function requireAuth(req, res, next) {
   try {
@@ -16,6 +16,11 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    const session = await Session.findByPk(payload.sid);
+    if (!session || session.revoked_at) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
     const user = await User.findByPk(payload.id, {
       include: [{ model: InsuranceCompany, as: 'insurance_company' }]
     });
@@ -24,7 +29,12 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    session.update({ last_active_at: new Date() }).catch((err) => {
+      console.warn('Failed to update session last_active_at:', err.message);
+    });
+
     req.user = user;
+    req.sessionId = payload.sid;
     return next();
   } catch (err) {
     return next(err);

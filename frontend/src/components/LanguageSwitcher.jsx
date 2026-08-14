@@ -13,6 +13,48 @@ function findTranslateSelect() {
   return document.querySelector("select.goog-te-combo");
 }
 
+// Constructs the actual Google Translate widget against this component's own
+// `#google_translate_element` container. Guarded so it only ever runs once
+// (per page load) even though two LanguageSwitcher instances are mounted at
+// once (mobile drawer + desktop sidebar) and React StrictMode double-invokes
+// effects in dev — both would otherwise race to build a second widget.
+function ensureWidgetInitialized() {
+  if (findTranslateSelect()) return; // already built (by this or the other instance)
+  if (!window.google?.translate?.TranslateElement) return; // API script not loaded yet
+  if (!document.getElementById("google_translate_element")) return; // our container not mounted yet
+  if (window.__googleTranslateWidgetBuilt) return; // guards a same-tick double call
+  window.__googleTranslateWidgetBuilt = true;
+  try {
+    new window.google.translate.TranslateElement(
+      { pageLanguage: "en", includedLanguages: "en,fr,rw", autoDisplay: false },
+      "google_translate_element"
+    );
+  } catch (err) {
+    window.__googleTranslateWidgetBuilt = false;
+    console.warn("[LanguageSwitcher] Failed to construct the Google Translate widget.", err);
+  }
+}
+
+// The translate API script loads asynchronously (and may still be loading even after this
+// component mounts, e.g. right after login), so poll briefly for readiness before giving up.
+function waitForTranslateApiAndInit({ intervalMs = 200, timeoutMs = 8000 } = {}) {
+  if (window.__googleTranslateApiReady) {
+    ensureWidgetInitialized();
+    return;
+  }
+  let elapsed = 0;
+  const timer = setInterval(() => {
+    elapsed += intervalMs;
+    if (window.__googleTranslateApiReady) {
+      clearInterval(timer);
+      ensureWidgetInitialized();
+    } else if (elapsed >= timeoutMs) {
+      clearInterval(timer);
+      console.warn("[LanguageSwitcher] Google Translate API did not become ready in time.");
+    }
+  }, intervalMs);
+}
+
 // The Google Translate <script> in index.html loads asynchronously and only builds the
 // `select.goog-te-combo` element once it finishes initializing, so callers can't assume it's
 // present the instant this component mounts. Poll briefly instead of failing outright.
@@ -92,6 +134,13 @@ export default function LanguageSwitcher() {
   const [activeLang, setActiveLang] = useState(() => localStorage.getItem(STORAGE_KEY) || "en");
   const hasAppliedOnMount = useRef(false);
 
+  // On mount: build the actual Google Translate widget against this container. Must happen here
+  // (not in index.html) because this container only exists post-login — see the long comment on
+  // `ensureWidgetInitialized` above.
+  useEffect(() => {
+    waitForTranslateApiAndInit();
+  }, []);
+
   // On mount: if a non-English language was chosen in a previous session, re-apply it once the
   // widget is ready.
   useEffect(() => {
@@ -145,8 +194,25 @@ export default function LanguageSwitcher() {
       </div>
 
       {/* Required by the Google Translate widget script; our own controls above replace its
-          default chrome, so this container stays hidden. */}
-      <div id="google_translate_element" className="hidden" />
+          default chrome. This must stay visually hidden WITHOUT `display:none` — Google's
+          widget script measures/renders into this container and silently fails to build its
+          `select.goog-te-combo` element (the thing that actually drives translation) if the
+          container is display:none at render time. Off-screen clipping keeps it invisible to
+          users while remaining "visible" for the widget's own layout checks. */}
+      <div
+        id="google_translate_element"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      />
     </div>
   );
 }

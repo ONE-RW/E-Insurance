@@ -34,6 +34,7 @@ export const ACTION_ICONS = {
   update_profile: User,
   change_password: KeyRound,
   update_avatar: Camera,
+  revoke_session: LogOut,
 };
 
 export function ActionCell({ action }) {

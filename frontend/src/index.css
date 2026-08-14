@@ -41,10 +41,26 @@ body {
   box-shadow: none !important;
 }
 
-/* The widget also injects an invisible full-page tooltip iframe (`iframe.skiptranslate`, e.g.
-   its hover-translate balloon) that can sit on top of the page and silently swallow clicks even
-   though it renders nothing visible. Since we never use the widget's own popup UI, it's safe to
-   make every such overlay click-through so real page controls stay clickable underneath it. */
+/* The widget injects its top banner AND its hover-translate tooltip balloon as `iframe`s carrying
+   its own `skiptranslate` marker class — confirmed live (its current build no longer uses the
+   older, widely-documented `.goog-te-banner-frame` class, so that selector above matches nothing
+   and is kept only as a harmless fallback). `display:none` is deliberately NOT used here — the
+   same widget already refuses to fully initialize when its main container is `display:none` (see
+   the long comment in LanguageSwitcher.jsx), so collapsing these to a clipped 1px box instead
+   keeps them "rendered" without ever being visible or intercepting clicks. */
 iframe.skiptranslate {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
   pointer-events: none !important;
+  border: 0 !important;
+}
+
+/* Google's click-to-rate-this-translation popup — a plain <div id="goog-gt-tt">, not an iframe,
+   so it needs its own rule. It's a secondary on-demand tooltip, not the widget's core container,
+   so display:none is safe here (unlike #google_translate_element above). */
+#goog-gt-tt {
+  display: none !important;
 }

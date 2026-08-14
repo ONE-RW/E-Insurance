@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const env = require('../config/env');
-const { User, InsuranceCompany } = require('../models');
+const { User, InsuranceCompany, Session } = require('../models');
 const { logActivity } = require('../middleware/activityLogger');
 
 const COOKIE_NAME = 'eassurance_token';
@@ -78,8 +79,16 @@ async function login(req, res, next) {
       return res.status(403).json({ error: 'Account is disabled' });
     }
 
+    const session = await Session.create({
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'] || null,
+      last_active_at: new Date()
+    });
+
     const token = jwt.sign(
-      { id: user.id, role: user.role, insurance_company_id: user.insurance_company_id },
+      { id: user.id, role: user.role, insurance_company_id: user.insurance_company_id, sid: session.id },
       env.jwtSecret,
       { expiresIn: '8h' }
     );
@@ -105,6 +114,10 @@ async function login(req, res, next) {
 async function logout(req, res, next) {
   try {
     res.clearCookie(COOKIE_NAME);
+
+    if (req.sessionId) {
+      await Session.update({ revoked_at: new Date() }, { where: { id: req.sessionId } });
+    }
 
     await logActivity({
       userId: req.user.id,

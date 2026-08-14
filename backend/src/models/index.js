@@ -6,8 +6,9 @@ const InsuranceCompany = require('./InsuranceCompany')(sequelize, DataTypes);
 const Vehicle = require('./Vehicle')(sequelize, DataTypes);
 const Policy = require('./Policy')(sequelize, DataTypes);
 const ActivityLog = require('./ActivityLog')(sequelize, DataTypes);
+const Session = require('./Session')(sequelize, DataTypes);
 
-const models = { User, InsuranceCompany, Vehicle, Policy, ActivityLog };
+const models = { User, InsuranceCompany, Vehicle, Policy, ActivityLog, Session };
 
 Object.values(models).forEach((model) => {
   if (typeof model.associate === 'function') {

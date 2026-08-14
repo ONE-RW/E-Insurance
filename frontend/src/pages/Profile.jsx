@@ -1,10 +1,15 @@
 import { useRef, useState } from "react";
-import { Camera, KeyRound, UserCircle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Camera, KeyRound, LogOut, Monitor, Smartphone, UserCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { updateProfile, changePassword, uploadAvatar } from "../api/profile";
+import { getMySessions, revokeSession } from "../api/sessions";
 import { getInitials } from "../components/Sidebar";
 import FormField from "../components/FormField";
 import Spinner from "../components/Spinner";
+import EmptyState from "../components/EmptyState";
+import StatusBadge from "../components/StatusBadge";
+import { formatDateTime } from "../utils/activityDisplay";
 
 function SuccessBanner({ message }) {
   if (!message) return null;
@@ -226,6 +231,114 @@ function ChangePasswordSection() {
   );
 }
 
+// Parses a small, friendly-ish label out of a raw User-Agent string, e.g.
+// "Chrome on Windows". Falls back to a truncated raw string when nothing
+// recognizable matches. This is intentionally a simple heuristic, not a
+// full UA parser.
+function describeUserAgent(userAgent) {
+  if (!userAgent) return "Unknown device";
+
+  let browser = "";
+  if (/Edg\//i.test(userAgent)) browser = "Edge";
+  else if (/Chrome\//i.test(userAgent)) browser = "Chrome";
+  else if (/Firefox\//i.test(userAgent)) browser = "Firefox";
+  else if (/Safari\//i.test(userAgent)) browser = "Safari";
+
+  let os = "";
+  if (/Windows/i.test(userAgent)) os = "Windows";
+  else if (/Mac OS/i.test(userAgent)) os = "Mac OS";
+  else if (/Android/i.test(userAgent)) os = "Android";
+  else if (/iPhone|iPad/i.test(userAgent)) os = "iPhone";
+  else if (/Linux/i.test(userAgent)) os = "Linux";
+
+  if (browser && os) return `${browser} on ${os}`;
+  if (browser) return browser;
+  if (os) return os;
+
+  return userAgent.length > 60 ? `${userAgent.slice(0, 60)}…` : userAgent;
+}
+
+function SessionRow({ session, onRevoke, revoking }) {
+  const isMobile = /Mobile|Android|iPhone/i.test(session.user_agent || "");
+  const DeviceIcon = isMobile ? Smartphone : Monitor;
+
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-gray-100 py-3 last:border-b-0">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-100 text-navy-700">
+          <DeviceIcon className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-navy-900">{describeUserAgent(session.user_agent)}</p>
+            {session.is_current && <StatusBadge tone="green" label="This device" />}
+          </div>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {session.ip_address || "Unknown IP"} · Last active {formatDateTime(session.last_active_at)}
+          </p>
+        </div>
+      </div>
+      {!session.is_current && (
+        <button
+          type="button"
+          onClick={() => onRevoke(session.id)}
+          disabled={revoking}
+          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-red-600 hover:underline disabled:opacity-60"
+        >
+          <LogOut className="h-4 w-4" />
+          Log out
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ActiveSessionsSection() {
+  const queryClient = useQueryClient();
+
+  const { data: sessions, isLoading, isError } = useQuery({
+    queryKey: ["sessions", "me"],
+    queryFn: getMySessions,
+  });
+
+  const revokeMut = useMutation({
+    mutationFn: revokeSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions", "me"] });
+    },
+  });
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-navy-900">Active Sessions</h2>
+      <div className="mt-4">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner size="lg" />
+          </div>
+        ) : isError ? (
+          <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            Failed to load active sessions.
+          </div>
+        ) : !sessions || sessions.length === 0 ? (
+          <EmptyState message="No active sessions found." />
+        ) : (
+          <div>
+            {sessions.map((session) => (
+              <SessionRow
+                key={session.id}
+                session={session}
+                onRevoke={revokeMut.mutate}
+                revoking={revokeMut.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const { user } = useAuth();
 
@@ -247,6 +360,7 @@ export default function Profile() {
         <AvatarSection />
         <ProfileInfoSection />
         <ChangePasswordSection />
+        <ActiveSessionsSection />
       </div>
     </div>
   );

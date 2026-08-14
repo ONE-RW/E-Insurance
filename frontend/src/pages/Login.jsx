@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, Mail, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import FormField from "../components/FormField";
@@ -14,10 +14,12 @@ export default function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const idleLogout = searchParams.get("reason") === "idle";
 
   useEffect(() => {
     if (user) {
@@ -53,10 +55,16 @@ export default function Login() {
           </p>
         </div>
 
-        {error && (
+        {error ? (
           <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             {error}
           </div>
+        ) : (
+          idleLogout && (
+            <div className="mb-4 rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700 ring-1 ring-inset ring-blue-200">
+              You were logged out due to inactivity.
+            </div>
+          )
         )}
 
         <form onSubmit={handleSubmit}>
