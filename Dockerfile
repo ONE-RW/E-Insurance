@@ -65,8 +65,10 @@ WORKDIR /app/backend
 # falls back to 5000 when PORT is unset).
 EXPOSE 5000
 
-# Run pending migrations, then start the server. Migrations run on every
-# container start so a fresh deploy's schema is always current; the seeder
-# is intentionally NOT run here (see DEPLOYMENT.md) since it's a one-time
-# step, not something to repeat on every deploy.
-CMD ["sh", "-c", "npx sequelize-cli db:migrate && node src/server.js"]
+# Check the database is actually reachable (and log exactly why, in detail, if it's
+# not - sequelize-cli's own migration errors have proven to print as a bare "ERROR: "
+# with no message in production, which is undiagnosable) before running migrations,
+# then start the server. Migrations run on every container start so a fresh deploy's
+# schema is always current; the seeder is intentionally NOT run here (see
+# DEPLOYMENT.md) since it's a one-time step, not something to repeat on every deploy.
+CMD ["sh", "-c", "node scripts/check-db.js && npx sequelize-cli db:migrate && node src/server.js"]
