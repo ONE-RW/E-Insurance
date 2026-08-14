@@ -4,8 +4,9 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const morgan = require('morgan');
+const pinoHttp = require('pino-http');
 const env = require('./config/env');
+const logger = require('./config/logger');
 
 const authRoutes = require('./routes/authRoutes');
 const usersRoutes = require('./routes/usersRoutes');
@@ -28,7 +29,7 @@ app.use(helmet());
 app.use(cors({ origin: env.frontendOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
-app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
+app.use(pinoHttp({ logger }));
 app.use('/uploads', helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }), express.static(uploadsDir));
 
 app.get('/api/health', (req, res) => {
@@ -44,6 +45,14 @@ app.use('/api/search', searchRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/sessions', sessionsRoutes);
+
+if (env.nodeEnv === 'production') {
+  const frontendDist = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendDist));
+  app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

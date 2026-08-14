@@ -251,14 +251,19 @@ export default function Users() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           {!editing && (
-            <FormField
-              label="Password"
-              id="password"
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-            />
+            <>
+              <FormField
+                label="Password"
+                id="password"
+                type="password"
+                required
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+              <p className="-mt-3 mb-4 text-xs text-gray-500">
+                At least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+              </p>
+            </>
           )}
           <FormField
             as="select"

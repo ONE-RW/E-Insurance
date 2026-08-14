@@ -1,10 +1,19 @@
 const { body, param } = require('express-validator');
 const validate = require('./validate');
 
+// Shared password strength rule, reused everywhere a password is created or
+// changed (admin creating a user, admin resetting a password, self-service
+// password change) so the policy only has to be defined once.
+function strongPasswordRule(fieldName) {
+  return body(fieldName)
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/)
+    .withMessage('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number');
+}
+
 const createUserValidator = [
   body('full_name').notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  strongPasswordRule('password'),
   body('role').isIn(['admin', 'insurer', 'officer']).withMessage('Role must be admin, insurer, or officer'),
   body('insurance_company_id')
     .optional({ nullable: true })
@@ -31,7 +40,7 @@ const statusValidator = [
 
 const passwordValidator = [
   param('id').isInt().withMessage('Invalid user id'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  strongPasswordRule('password'),
   validate
 ];
 
@@ -43,7 +52,7 @@ const updateMeValidator = [
 
 const changeMyPasswordValidator = [
   body('current_password').notEmpty().withMessage('Current password is required'),
-  body('new_password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  strongPasswordRule('new_password'),
   validate
 ];
 

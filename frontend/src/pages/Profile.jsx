@@ -208,6 +208,9 @@ function ChangePasswordSection() {
             value={form.new_password}
             onChange={(e) => setForm({ ...form, new_password: e.target.value })}
           />
+          <p className="-mt-3 mb-4 text-xs text-gray-500">
+            At least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+          </p>
           <FormField
             label="Confirm New Password"
             id="confirm_new_password"
