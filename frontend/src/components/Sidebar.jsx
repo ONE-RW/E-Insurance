@@ -53,19 +53,21 @@ export function getInitials(fullName) {
   return initials.join("") || "?";
 }
 
-function BrandHeader({ onClose }) {
+function BrandHeader({ onClose, collapsed }) {
   return (
-    <div className="flex items-center justify-between px-4 py-5">
+    <div className={`flex items-center px-4 py-5 ${collapsed ? "justify-center px-2" : "justify-between"}`}>
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy-700">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy-700">
           <Shield className="h-6 w-6 text-white" />
         </div>
-        <div>
-          <p className="text-base font-bold leading-tight text-white">E-Assurance</p>
-          <p className="text-xs text-navy-300">Rwanda National Police</p>
-        </div>
+        {!collapsed && (
+          <div>
+            <p className="text-base font-bold leading-tight text-white">E-Assurance</p>
+            <p className="text-xs text-navy-300">Rwanda National Police</p>
+          </div>
+        )}
       </div>
-      {onClose && (
+      {onClose && !collapsed && (
         <button
           type="button"
           onClick={onClose}
@@ -79,20 +81,27 @@ function BrandHeader({ onClose }) {
   );
 }
 
-function NavLinks({ links, onNavigate }) {
+function NavLinks({ links, onNavigate, collapsed }) {
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-      isActive ? "bg-navy-700 text-white" : "text-navy-200 hover:bg-navy-800 hover:text-white"
-    }`;
+      collapsed ? "justify-center px-2" : ""
+    } ${isActive ? "bg-navy-700 text-white" : "text-navy-200 hover:bg-navy-800 hover:text-white"}`;
 
   return (
     <nav className="flex-1 space-y-1 px-3">
       {links.map((link) => {
         const Icon = link.icon;
         return (
-          <NavLink key={link.to} to={link.to} end={link.end} onClick={onNavigate} className={linkClass}>
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end={link.end}
+            onClick={onNavigate}
+            className={linkClass}
+            title={collapsed ? link.label : undefined}
+          >
             <Icon className="h-5 w-5 shrink-0" />
-            <span>{link.label}</span>
+            {!collapsed && <span>{link.label}</span>}
           </NavLink>
         );
       })}
@@ -100,12 +109,18 @@ function NavLinks({ links, onNavigate }) {
   );
 }
 
-function UserCard({ user, onLogout }) {
+function UserCard({ user, onLogout, collapsed }) {
   const pillClass = ROLE_PILL_CLASSES[user.role] || "bg-gray-500/20 text-gray-100 ring-1 ring-inset ring-gray-400/40";
 
   return (
     <div className="border-t border-navy-800 px-3 py-4">
-      <Link to="/profile" className="flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-navy-800">
+      <Link
+        to="/profile"
+        title={collapsed ? user.full_name : undefined}
+        className={`flex items-center gap-3 rounded-md px-2 py-2 transition hover:bg-navy-800 ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
         {user.avatar_url ? (
           <img
             src={user.avatar_url}
@@ -117,20 +132,23 @@ function UserCard({ user, onLogout }) {
             {getInitials(user.full_name)}
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">{user.full_name}</p>
-          <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${pillClass}`}>
-            {user.role}
-          </span>
-        </div>
+        {!collapsed && (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">{user.full_name}</p>
+            <span className={`mt-0.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${pillClass}`}>
+              {user.role}
+            </span>
+          </div>
+        )}
       </Link>
       <button
         type="button"
         onClick={onLogout}
+        title={collapsed ? "Logout" : undefined}
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-navy-700 px-3 py-2 text-sm font-medium text-white hover:bg-navy-600"
       >
         <LogOut className="h-4 w-4" />
-        Logout
+        {!collapsed && "Logout"}
       </button>
     </div>
   );
@@ -191,17 +209,19 @@ export default function Sidebar({ open: desktopOpen = true, onClose }) {
         <UserCard user={user} onLogout={handleLogout} />
       </div>
 
-      {/* Desktop sidebar — collapsible via the toggle in Layout.jsx (and its own close button
-          here), controlled by the `open`/`onClose` props rather than local state. */}
+      {/* Desktop sidebar — collapses to an icon-only rail (not fully off-screen) via the toggle
+          in Layout.jsx and its own close button here, controlled by the `open`/`onClose` props
+          rather than local state. `overflow-hidden` keeps labels from reflowing/wrapping visibly
+          mid-transition while the width animates down. */}
       <div
-        className={`fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-navy-900 transition-transform duration-200 lg:flex ${
-          desktopOpen ? "lg:translate-x-0" : "lg:-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-navy-900 transition-[width] duration-200 lg:flex ${
+          desktopOpen ? "lg:w-64" : "lg:w-16"
         }`}
       >
-        <BrandHeader onClose={onClose} />
-        <LanguageSwitcher />
-        <NavLinks links={links} />
-        <UserCard user={user} onLogout={handleLogout} />
+        <BrandHeader onClose={onClose} collapsed={!desktopOpen} />
+        <LanguageSwitcher collapsed={!desktopOpen} />
+        <NavLinks links={links} collapsed={!desktopOpen} />
+        <UserCard user={user} onLogout={handleLogout} collapsed={!desktopOpen} />
       </div>
     </>
   );

@@ -18,7 +18,7 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-100">
       <IdleLogoutGuard />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main className={`transition-[margin] duration-200 ${sidebarOpen ? "lg:ml-64" : "lg:ml-0"}`}>
+      <main className={`transition-[margin] duration-200 ${sidebarOpen ? "lg:ml-64" : "lg:ml-16"}`}>
         {/* Desktop-only toggle — always reachable regardless of the sidebar's open/collapsed
             state, so users can re-expand it after collapsing. The mobile hamburger lives inside
             Sidebar.jsx's own top bar and is unaffected by this. */}

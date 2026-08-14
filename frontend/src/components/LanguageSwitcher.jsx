@@ -3,11 +3,20 @@ import { useLocation } from "react-router-dom";
 
 const STORAGE_KEY = "eassurance_lang";
 
+// `flagCountry` is the ISO 3166-1 alpha-2 code used by the `flag-icons` library (imported once
+// in main.jsx) to render an actual flag graphic — deliberately NOT Unicode flag emoji, which
+// several common environments (older Windows builds, some headless/CI browsers) render as plain
+// two-letter text ("GB", "RW") instead of a flag glyph, since flag rendering depends on the
+// OS/browser's emoji font rather than anything this app controls.
 const LANGUAGES = [
-  { code: "en", flag: "🇬🇧", label: "English" },
-  { code: "fr", flag: "🇫🇷", label: "Français" },
-  { code: "rw", flag: "🇷🇼", label: "Kinyarwanda" },
+  { code: "en", flagCountry: "gb", label: "English" },
+  { code: "fr", flagCountry: "fr", label: "Français" },
+  { code: "rw", flagCountry: "rw", label: "Kinyarwanda" },
 ];
+
+function FlagIcon({ country, className = "" }) {
+  return <span className={`fi fi-${country} rounded-[2px] ${className}`} style={{ fontSize: "1em" }} aria-hidden="true" />;
+}
 
 function findTranslateSelect() {
   return document.querySelector("select.goog-te-combo");
@@ -129,7 +138,7 @@ async function applyLanguage(code) {
   select.dispatchEvent(new Event("change"));
 }
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ collapsed = false }) {
   const location = useLocation();
   const [activeLang, setActiveLang] = useState(() => localStorage.getItem(STORAGE_KEY) || "en");
   const hasAppliedOnMount = useRef(false);
@@ -172,26 +181,49 @@ export default function LanguageSwitcher() {
   }, []);
 
   return (
-    <div className="px-3 py-2">
-      <div className="flex items-center gap-1 rounded-md bg-navy-800 p-1" role="group" aria-label="Choose language">
-        {LANGUAGES.map((lang) => (
-          <button
-            key={lang.code}
-            type="button"
-            onClick={() => handleSelect(lang.code)}
-            aria-pressed={activeLang === lang.code}
-            title={lang.label}
-            className={`flex flex-1 items-center justify-center gap-1 rounded px-1.5 py-1 text-xs font-medium transition ${
-              activeLang === lang.code
-                ? "bg-navy-600 text-white"
-                : "text-navy-200 hover:bg-navy-700 hover:text-white"
-            }`}
-          >
-            <span aria-hidden="true">{lang.flag}</span>
-            <span className="hidden sm:inline">{lang.code.toUpperCase()}</span>
-          </button>
-        ))}
-      </div>
+    <div className={collapsed ? "px-2 py-2" : "px-3 py-2"}>
+      {collapsed ? (
+        // Icon-rail mode: flags only, stacked, no code text — same footprint as the collapsed
+        // nav icons so the rail stays a consistent width regardless of section.
+        <div className="flex flex-col items-center gap-1" role="group" aria-label="Choose language">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => handleSelect(lang.code)}
+              aria-pressed={activeLang === lang.code}
+              title={lang.label}
+              className={`flex h-8 w-8 items-center justify-center rounded-md transition ${
+                activeLang === lang.code
+                  ? "bg-navy-600"
+                  : "hover:bg-navy-800"
+              }`}
+            >
+              <FlagIcon country={lang.flagCountry} className="text-lg" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1 rounded-md bg-navy-800 p-1" role="group" aria-label="Choose language">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => handleSelect(lang.code)}
+              aria-pressed={activeLang === lang.code}
+              title={lang.label}
+              className={`flex flex-1 items-center justify-center gap-1 rounded px-1.5 py-1 text-xs font-medium transition ${
+                activeLang === lang.code
+                  ? "bg-navy-600 text-white"
+                  : "text-navy-200 hover:bg-navy-700 hover:text-white"
+              }`}
+            >
+              <FlagIcon country={lang.flagCountry} />
+              <span className="hidden sm:inline">{lang.code.toUpperCase()}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Required by the Google Translate widget script; our own controls above replace its
           default chrome. This must stay visually hidden WITHOUT `display:none` — Google's
